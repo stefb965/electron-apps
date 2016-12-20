@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const yaml = require('yamljs')
+const getImageColors = require('get-image-colors')
 const apps = []
 
 fs.readdirSync(path.join(__dirname, 'apps'))
@@ -17,7 +18,21 @@ fs.readdirSync(path.join(__dirname, 'apps'))
   apps.push(app)
 })
 
-fs.writeFileSync(
-  path.join(__dirname, 'index.json'),
-  JSON.stringify(apps, null, 2)
+Promise.all(
+  apps.map(app => {
+    const filename = path.join(__dirname, `apps/${app.slug}/${app.icon}`)
+    return getImageColors(filename).then(colors => {
+      console.log(app.slug)
+      return Object.assign(app, {iconColors: colors.map(color => color.hex())})
+    })
+  })
 )
+.then(apps => {
+  fs.writeFileSync(
+    path.join(__dirname, 'index.json'),
+    JSON.stringify(apps, null, 2)
+  )
+})
+.catch(error => {
+  console.error(error)
+})
